@@ -1,22 +1,36 @@
 package org.geotools.data.ingres;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.math.BigDecimal;
+import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Blob;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
+//import net.sf.jsqlparser.schema.Column;
+
 import org.geotools.data.DataSourceException;
+import org.geotools.data.jdbc.FilterToSQL;
 import org.geotools.factory.Hints;
+import org.geotools.jdbc.BasicSQLDialect;
 import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.jdbc.PreparedFilterToSQL;
 import org.geotools.jdbc.PreparedStatementSQLDialect;
 import org.geotools.referencing.CRS;
+import org.geotools.util.Converters;
+//import org.hsqldb.Types;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
@@ -117,20 +131,25 @@ public class IngresDialect extends PreparedStatementSQLDialect {
                     "Error occurred parsing the bounds WKT").initCause(e);
         }
     }
+    public void encodeGeometryColumn(GeometryDescriptor gatt, String prefix, int srid,
+            StringBuffer sql) {
+        encodeGeometryColumn(gatt, prefix, srid, null, sql);
+	}
     
+    @Override
+    public void encodeGeometryColumn(GeometryDescriptor gatt, String prefix, int srid, Hints hints, 
+        StringBuffer sql) {
+    	sql.append(" AsBinary( ");
+    	encodeColumnName(gatt.getLocalName(), sql);
+    	sql.append(" ) ");
+    }
+
     @Override
     public void encodeGeometryEnvelope(String tableName, String geometryColumn, StringBuffer sql) {
     	sql.append("AsText(Envelope(" + geometryColumn + "))");
     }
     
-    @Override
-    public void encodeGeometryColumn(GeometryDescriptor gatt, String prefix,
-            int srid, Hints hints, StringBuffer sql) {
-    	sql.append(" AsBinary( ");
-    	encodeColumnName(prefix, gatt.getLocalName(), sql);
-    	sql.append(" ) ");
-    }
-
+    
     @Override
     public void prepareGeometryValue(Geometry g, int srid, Class binding,
             StringBuffer sql) {
@@ -213,7 +232,7 @@ public class IngresDialect extends PreparedStatementSQLDialect {
     
     @Override
     public void encodePrimaryKey(String column, StringBuffer sql) {
-        encodeColumnName(null, column, sql);
+        encodeColumnName(column, sql);
         sql.append(" INT PRIMARY KEY");
     }
 
